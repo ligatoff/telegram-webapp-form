@@ -1,244 +1,50 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Передача денег</title>
-
   <style>
-    :root{
-      --bg: #f6f7fb;
-      --card: #ffffff;
-      --accent: #0077b6;
-      --text: #111827;
-    }
-    html,body {
-      height: 100%;
-      margin: 0;
-      padding: 0;
-      background: var(--bg);
-      -webkit-tap-highlight-color: transparent;
-      font-family: Inter, Roboto, Arial, sans-serif;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      color: var(--text);
-    }
-
-    .wrap {
-      box-sizing: border-box;
-      max-width: 720px;
-      margin: 0 auto;
-      padding: 18px;
-      padding-bottom: calc(18px + env(safe-area-inset-bottom));
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-
-    .card {
-      background: var(--card);
-      border-radius: 14px;
-      padding: 18px;
-      box-shadow: 0 6px 20px rgba(9, 30, 66, 0.06);
-      width: 100%;
-      box-sizing: border-box;
-    }
-
-    h1 {
-      margin: 0 0 6px 0;
-      font-size: 20px;
-      text-align: center;
-    }
-    p.hint {
-      margin: 0 0 12px 0;
-      text-align: center;
-      color: #555;
-      font-size: 13px;
-    }
-
-    label {
-      display:block;
-      font-weight:600;
-      margin-bottom: 6px;
-      font-size: 13px;
-    }
-
-    .field {
-      margin-bottom: 12px;
-    }
-
-    input[type="text"],
-    input[type="number"] {
-      width: 100%;
-      padding: 14px;
-      font-size: 18px;
-      border-radius: 10px;
-      border: 1px solid #e6e9ef;
-      background: #fff;
-      box-sizing: border-box;
-      outline: none;
-    }
-    input[type="text"]::placeholder,
-    input[type="number"]::placeholder { color: #aaa; }
-
-    select {
-      width:100%;
-      padding: 12px;
-      font-size: 17px;
-      border-radius: 10px;
-      border: 1px solid #e6e9ef;
-      background: #fff;
-    }
-
-    /* Закреплённая нижняя панель с кнопкой — удобна на мобиле */
-    .footer {
-      position: sticky;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      margin-top: auto;
-      padding: 12px;
-      background: linear-gradient(180deg, rgba(246,247,251,0) 0%, rgba(246,247,251,1) 100%);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      box-sizing: border-box;
-      pointer-events: none; /* чтобы не закрывать элементы при overlay; кнопке ниже отменим */
-    }
-    .send-btn {
-      pointer-events: auto;
-      width: 100%;
-      max-width: 640px;
-      height: 56px;
-      border-radius: 12px;
-      border: none;
-      background: var(--accent);
-      color: #fff;
-      font-size: 18px;
-      font-weight: 600;
-      cursor: pointer;
-      box-shadow: 0 6px 18px rgba(0,119,182,0.18);
-    }
-    .send-btn:disabled {
-      opacity: 0.55;
-      cursor: not-allowed;
-    }
-
-    /* небольшие адаптивные настройки */
-    @media (min-width: 480px) {
-      .wrap { padding-left: 28px; padding-right: 28px; }
-    }
+    body { font-family: sans-serif; margin: 20px; }
+    input, select, button { width: 100%; margin-bottom: 10px; padding: 10px; font-size: 16px; }
   </style>
 </head>
 <body>
-  <div class="wrap" id="wrap">
-    <div class="card">
-      <h1>📝 Передача денег</h1>
-      <p class="hint">Заполните, пожалуйста, поля — удобно с телефона</p>
+  <h2>Передача денег</h2>
+  <input type="text" id="recipient" placeholder="Получатель">
+  <select id="contract"></select>
+  <input type="number" id="usd" placeholder="Сумма (у.е.)">
+  <input type="number" id="uzs" placeholder="Сумма (сум)">
+  <button onclick="sendData()">Отправить</button>
 
-      <div class="field">
-        <label for="recipient">👤 Получатель</label>
-        <input id="recipient" type="text" inputmode="text" autocomplete="name" placeholder="Введите имя или должность" />
-      </div>
-
-      <div class="field">
-        <label for="usd">💵 Сумма (у.е.)</label>
-        <input id="usd" type="number" inputmode="decimal" step="0.01" placeholder="0.00" />
-      </div>
-
-      <div class="field">
-        <label for="uzs">💰 Сум (сум)</label>
-        <input id="uzs" type="number" inputmode="numeric" step="1" placeholder="0" />
-      </div>
-
-      <div style="font-size:13px; color:#666; margin-top:8px;">
-        После нажатия «Отправить» данные будут переданы в бота.
-      </div>
-    </div>
-
-    <!-- нижняя панель с кнопкой -->
-    <div class="footer">
-      <button id="sendBtn" class="send-btn" disabled>✅ Отправить</button>
-    </div>
-  </div>
-
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
-    (function(){
-      const tg = window.Telegram && window.Telegram.WebApp;
-      // Раскрыть WebApp на максимум высоты
-      try { tg && tg.expand(); } catch(e){}
-
-      const recipientEl = document.getElementById('recipient');
-      const usdEl = document.getElementById('usd');
-      const uzsEl = document.getElementById('uzs');
-      const sendBtn = document.getElementById('sendBtn');
-
-      // Валидация простая: обязательно получатель + хотя бы одна сумма > 0
-      function validate(){
-        const recipient = recipientEl.value.trim();
-        const usd = parseFloat(usdEl.value) || 0;
-        const uzs = parseFloat(uzsEl.value) || 0;
-        const ok = recipient.length > 0 && (usd > 0 || uzs > 0);
-        sendBtn.disabled = !ok;
-        return ok;
-      }
-
-      // при вводе проверяем
-      [recipientEl, usdEl, uzsEl].forEach(el => {
-        el.addEventListener('input', validate, {passive:true});
+    async function loadContracts() {
+      const params = new URLSearchParams(window.location.search);
+      const inn = params.get("inn");
+      if (!inn) return;
+      const res = await fetch(`https://your-server.com/contracts?inn=${inn}`);
+      const data = await res.json();
+      const select = document.getElementById("contract");
+      select.innerHTML = "";
+      data.contracts.forEach(c => {
+        const option = document.createElement("option");
+        option.value = c;
+        option.textContent = c;
+        select.appendChild(option);
       });
+    }
 
-      // helper — соберём payload
-      function buildPayload(){
-        return {
-          recipient: recipientEl.value.trim(),
-          usd: usdEl.value ? Number(parseFloat(usdEl.value).toFixed(2)) : 0,
-          uzs: uzsEl.value ? Number(parseFloat(uzsEl.value)) : 0,
-          ts: new Date().toISOString()
-        };
-      }
+    function sendData() {
+      const data = {
+        recipient: document.getElementById("recipient").value,
+        contract: document.getElementById("contract").value,
+        usd: document.getElementById("usd").value,
+        uzs: document.getElementById("uzs").value,
+      };
+      Telegram.WebApp.sendData(JSON.stringify(data));
+    }
 
-      // Отправка данных в бота
-      async function sendData(){
-        if (!validate()) {
-          alert('Пожалуйста, заполните "Получатель" и хотя бы одну сумму.');
-          return;
-        }
-        const payload = buildPayload();
-        const json = JSON.stringify(payload);
-
-        // Если запущено внутри Telegram WebApp
-        if (tg && tg.sendData) {
-          try {
-            tg.sendData(json);
-            // Перед закрытием можно показать loading, но быстро закроем
-            try { tg.close(); } catch(e){}
-          } catch (err){
-            alert('Ошибка отправки данных в бота: ' + err);
-          }
-        } else {
-          // fallback — просто покажем данные (для дебага в браузере)
-          alert('Данные для отправки: ' + json);
-        }
-      }
-
-      // отправка по нажатию кнопки
-      sendBtn.addEventListener('click', sendData, {passive:false});
-
-      // UX: при открытии — фокус на первом поле
-      setTimeout(() => recipientEl.focus(), 400);
-
-      // на iOS иногда клавиатура перекрывает кнопку — пытаемся прокинуть видимость
-      window.addEventListener('resize', () => {
-        // прокрутить, чтобы инпут и кнопка были видны
-        const active = document.activeElement;
-        if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
-          setTimeout(() => active.scrollIntoView({behavior:'smooth', block:'center'}), 150);
-        }
-      });
-    })();
+    loadContracts();
   </script>
 </body>
 </html>
