@@ -3,50 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Передача денег</title>
+    <title>Форма передачи денег</title>
     <style>
-        body { font-family: sans-serif; margin: 10px; }
-        label { display: block; margin-top: 10px; }
-        select, input { width: 100%; padding: 8px; margin-top: 5px; }
-        button { margin-top: 15px; width: 100%; padding: 10px; background: #2b7; color: #fff; border: none; font-size: 16px; cursor: pointer; }
+        body {
+            font-family: Arial, sans-serif;
+            padding: 10px;
+            background: #f9f9f9;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            box-sizing: border-box;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:disabled {
+            background-color: #aaa;
+        }
     </style>
 </head>
 <body>
-    <h2>Передача денег</h2>
+    <h2>📝 Передача денег</h2>
 
-    <label for="contract">Договор:</label>
-    <select id="contract">
-        <option>Загрузка...</option>
-    </select>
+    <div class="form-group">
+        <label for="recipient">👤 Получатель</label>
+        <input type="text" id="recipient" placeholder="Введите имя получателя">
+    </div>
 
-    <label for="recipient">Получатель:</label>
-    <input type="text" id="recipient" placeholder="ФИО получателя">
+    <div class="form-group">
+        <label for="usd">💵 Сумма (у.е.)</label>
+        <input type="number" id="usd" placeholder="Введите сумму в у.е.">
+    </div>
 
-    <label for="usd">Сумма (у.е.):</label>
-    <input type="number" id="usd" step="0.01" placeholder="0.00">
+    <div class="form-group">
+        <label for="uzs">💰 Сумма (сум)</label>
+        <input type="number" id="uzs" placeholder="Введите сумму в сум">
+    </div>
 
-    <label for="uzs">Сумма (сум):</label>
-    <input type="number" id="uzs" step="1" placeholder="0">
+    <div class="form-group">
+        <label for="contract">📄 Договор</label>
+        <select id="contract">
+            <option>Загрузка...</option>
+        </select>
+    </div>
 
     <button id="sendBtn">Отправить</button>
 
     <script>
-        // 1. Читаем параметр inn из URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const inn = urlParams.get("inn");
-        console.log("📌 INN из URL:", inn);
+        (async () => {
+            const contractSelect = document.getElementById("contract");
+            const urlParams = new URLSearchParams(window.location.search);
+            const inn = urlParams.get("inn");
 
-        const contractSelect = document.getElementById("contract");
-
-        async function loadContracts() {
             if (!inn) {
-                console.error("❌ INN не передан в URL!");
-                contractSelect.innerHTML = "<option>Ошибка: нет ИНН</option>";
+                contractSelect.innerHTML = "<option>Ошибка: ИНН не передан</option>";
                 return;
             }
 
             try {
-                const url = `http://127.0.0.1:8080/contracts?inn=$inn`;
+                const url = `http://127.0.0.1:8080/contracts?inn=${inn}`;
                 console.log("📡 Загружаю договоры с:", url);
 
                 const response = await fetch(url);
@@ -59,40 +89,41 @@
 
                 if (!Array.isArray(data) || data.length === 0) {
                     contractSelect.innerHTML = "<option>Договоров нет</option>";
-                    return;
+                } else {
+                    contractSelect.innerHTML = "";
+                    data.forEach(c => {
+                        const opt = document.createElement("option");
+                        opt.value = c;   // если сервер возвращает массив строк
+                        opt.textContent = c;
+                        contractSelect.appendChild(opt);
+                    });
                 }
-
-                contractSelect.innerHTML = "";
-                data.forEach(c => {
-                    const opt = document.createElement("option");
-                    opt.value = c.contract;
-                    opt.textContent = c.contract;
-                    contractSelect.appendChild(opt);
-                });
-
             } catch (err) {
-                console.error("❌ Ошибка при загрузке договоров:", err);
-                contractSelect.innerHTML = "<option>Ошибка загрузки</option>";
+                console.error(err);
+                contractSelect.innerHTML = `<option>Ошибка загрузки договоров</option>`;
             }
-        }
+        })();
 
-        loadContracts();
-
-        document.getElementById("sendBtn").addEventListener("click", () => {
+        // Отправка данных обратно в бота
+        document.getElementById("sendBtn").addEventListener("click", async () => {
             const data = {
-                inn,
-                contract: contractSelect.value,
                 recipient: document.getElementById("recipient").value,
                 usd: document.getElementById("usd").value,
-                uzs: document.getElementById("uzs").value
+                uzs: document.getElementById("uzs").value,
+                contract: document.getElementById("contract").value
             };
-            console.log("📤 Отправляю данные боту:", data);
 
-            if (window.Telegram && window.Telegram.WebApp) {
-                window.Telegram.WebApp.sendData(JSON.stringify(data));
-                window.Telegram.WebApp.close();
-            } else {
-                alert("Форма открыта вне Telegram, данные в бот не отправятся!");
+            try {
+                if (window.Telegram.WebApp) {
+                    await window.Telegram.WebApp.sendData(JSON.stringify(data));
+                    alert("✅ Данные отправлены боту");
+                    window.Telegram.WebApp.close();
+                } else {
+                    alert("❌ WebApp не обнаружен");
+                }
+            } catch (err) {
+                console.error(err);
+                alert("❌ Ошибка при отправке данных");
             }
         });
     </script>
