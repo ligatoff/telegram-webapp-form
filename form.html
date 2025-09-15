@@ -2,30 +2,102 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <title>Передача денег</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: sans-serif; padding: 20px; }
-        input, button { display: block; margin: 10px 0; width: 100%; padding: 8px; font-size: 16px; }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            font-size: 18px;
+            background-color: #f8f9fa;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            font-size: 18px;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            font-size: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            background-color: #0088cc;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0077b3;
+        }
     </style>
 </head>
 <body>
-    <h2>💸 Форма передачи денег</h2>
-    <input type="text" id="recipient" placeholder="Имя получателя">
-    <input type="number" id="amount_ue" placeholder="Сумма у.е.">
-    <input type="number" id="amount_sum" placeholder="Сумма сум">
-    <input type="file" id="photo">
-    <button onclick="sendData()">Отправить</button>
+    <h2>📝 Передача денег</h2>
 
+    <div class="form-group">
+        <label>👤 Получатель:</label>
+        <input type="text" id="recipient" placeholder="Введите имя получателя">
+    </div>
+
+    <div class="form-group">
+        <label>💵 У.е:</label>
+        <input type="number" id="usd" placeholder="Введите сумму в у.е">
+    </div>
+
+    <div class="form-group">
+        <label>💰 Сум:</label>
+        <input type="number" id="uzs" placeholder="Введите сумму в сум">
+    </div>
+
+    <button onclick="sendData()">✅ Отправить</button>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
         function sendData() {
+            const recipient = document.getElementById("recipient").value;
+            const usd = document.getElementById("usd").value;
+            const uzs = document.getElementById("uzs").value;
+
+            if (!recipient) {
+                alert("Введите имя получателя!");
+                return;
+            }
+
             const data = {
-                recipient: document.getElementById("recipient").value,
-                amount_ue: document.getElementById("amount_ue").value,
-                amount_sum: document.getElementById("amount_sum").value
+                recipient: recipient,
+                usd: usd || 0,
+                uzs: uzs || 0
             };
-            Telegram.WebApp.sendData(JSON.stringify(data));
-            Telegram.WebApp.close();
+
+            if (window.Telegram && window.Telegram.WebApp) {
+                window.Telegram.WebApp.sendData(JSON.stringify(data));
+                window.Telegram.WebApp.close();
+            } else {
+                alert("Форма не запущена в Telegram WebApp!");
+            }
         }
     </script>
 </body>
