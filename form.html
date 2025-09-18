@@ -1,93 +1,104 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <title>Передача денег</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        body { font-family: sans-serif; padding: 10px; background: #f5f5f5; }
-        .container { max-width: 400px; margin: auto; background: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
-        label { display: block; margin-top: 10px; font-weight: bold; }
-        select, input { width: 100%; padding: 8px; margin-top: 5px; }
-        button { margin-top: 15px; padding: 10px; width: 100%; background: #4CAF50; color: white; font-size: 16px; border: none; border-radius: 5px; cursor: pointer; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Передача денег</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #f8f9fa;
+    }
+    .container {
+      width: 100%;
+      max-width: 400px;
+      background: #fff;
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h2 { text-align: center; margin-bottom: 15px; }
+    label { display: block; margin-top: 10px; }
+    input, select {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    button {
+      margin-top: 20px;
+      width: 100%;
+      padding: 12px;
+      background: #2c7be5;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 18px;
+      cursor: pointer;
+    }
+    button:hover { background: #1b5bbf; }
+  </style>
 </head>
 <body>
-<div class="container">
+  <div class="container">
     <h2>Передача денег</h2>
-    <label for="contract">Договор:</label>
+    <label for="recipient">Получатель</label>
+    <input type="text" id="recipient" placeholder="Введите получателя">
+
+    <label for="contract">Договор</label>
     <select id="contract"><option>Загрузка...</option></select>
 
-    <label for="amount_usd">Сумма (у.е.):</label>
-    <input type="number" id="amount_usd" placeholder="Введите сумму в у.е">
+    <label for="usd">Сумма (у.е.)</label>
+    <input type="number" id="usd" placeholder="0.00">
 
-    <label for="amount_sum">Сумма (сум):</label>
-    <input type="number" id="amount_sum" placeholder="Введите сумму в сумах">
+    <label for="uzs">Сумма (сум)</label>
+    <input type="number" id="uzs" placeholder="0">
 
     <button onclick="sendData()">Отправить</button>
-</div>
+  </div>
 
-<script>
+  <script>
     const urlParams = new URLSearchParams(window.location.search);
     const inn = urlParams.get("inn");
-    const contractSelect = document.getElementById("contract");
 
     async function loadContracts() {
-        try {
-            const url = `http://127.0.0.1:8080/contracts?inn=${inn}`;
-            console.log("📡 Загружаю договоры с:", url);
-            const response = await fetch(url);
-            console.log("📡 HTTP статус:", response.status);
-
-            if (!response.ok) throw new Error(`Ошибка ${response.status}`);
-
-            const data = await response.json();
-            console.log("✅ Ответ сервера:", data);
-
-            if (!Array.isArray(data) || data.length === 0) {
-                contractSelect.innerHTML = "<option>Договоров нет</option>";
-                return;
-            }
-
-            contractSelect.innerHTML = "";
-            data.forEach(c => {
-                const opt = document.createElement("option");
-                opt.value = c.contract;
-                opt.textContent = c.contract;
-                contractSelect.appendChild(opt);
-            });
-        } catch (e) {
-            console.error("❌ Ошибка загрузки:", e);
-            contractSelect.innerHTML = "<option>Ошибка загрузки</option>";
-        }
+      try {
+        const response = await fetch(`http://192.168.5.48:8080/contracts?inn=${inn}`);
+        if (!response.ok) throw new Error("Ошибка загрузки");
+        const data = await response.json();
+        const contractSelect = document.getElementById("contract");
+        contractSelect.innerHTML = "";
+        data.forEach(contract => {
+          const opt = document.createElement("option");
+          opt.value = contract.contract;
+          opt.textContent = contract.contract;
+          contractSelect.appendChild(opt);
+        });
+      } catch (e) {
+        document.getElementById("contract").innerHTML = "<option>Ошибка загрузки</option>";
+      }
     }
 
-    function sendData() {
-        const selectedContract = contractSelect.value;
-        const amountUsd = document.getElementById("amount_usd").value;
-        const amountSum = document.getElementById("amount_sum").value;
-
-        if (!selectedContract || selectedContract === "Договоров нет" || selectedContract === "Ошибка загрузки") {
-            alert("Выберите договор!");
-            return;
-        }
-
-        const payload = {
-            inn: inn,
-            contract: selectedContract,
-            amount_usd: amountUsd,
-            amount_sum: amountSum
-        };
-
-        console.log("📤 Отправляю данные в бота:", payload);
-        if (window.Telegram?.WebApp) {
-            window.Telegram.WebApp.sendData(JSON.stringify(payload));
-        } else {
-            alert("Данные (тест): " + JSON.stringify(payload));
-        }
+    async function sendData() {
+      const tg = window.Telegram.WebApp;
+      const data = {
+        recipient: document.getElementById("recipient").value,
+        contract: document.getElementById("contract").value,
+        usd: document.getElementById("usd").value,
+        uzs: document.getElementById("uzs").value
+      };
+      tg.sendData(JSON.stringify(data));
+      tg.close();
     }
 
     loadContracts();
-</script>
+  </script>
 </body>
 </html>
