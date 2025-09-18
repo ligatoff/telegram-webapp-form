@@ -7,7 +7,7 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f9f9f9;
+      background: #f2f2f2;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -17,15 +17,15 @@
     .container {
       background: white;
       padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
       width: 90%;
       max-width: 400px;
     }
     input, select, button {
       width: 100%;
       padding: 10px;
-      margin: 8px 0;
+      margin: 6px 0;
       border-radius: 6px;
       border: 1px solid #ccc;
       font-size: 16px;
@@ -44,11 +44,12 @@
 <body>
 <div class="container">
   <h2>💸 Передача денег</h2>
+
   <label>Договор</label>
   <select id="contractSelect"><option>Загрузка...</option></select>
 
   <label>Получатель</label>
-  <input type="text" id="recipient" placeholder="Введите имя получателя">
+  <input type="text" id="recipient" placeholder="Введите имя">
 
   <label>Сумма (у.е)</label>
   <input type="number" id="usd" step="0.01">
@@ -68,11 +69,11 @@
     try {
       const res = await fetch(`http://192.168.5.48:8080/contracts?inn=${inn}`);
       const data = await res.json();
+      contractSelect.innerHTML = "";
       if (!Array.isArray(data) || data.length === 0) {
         contractSelect.innerHTML = "<option>Договоров нет</option>";
         return;
       }
-      contractSelect.innerHTML = "";
       data.forEach(c => {
         const opt = document.createElement("option");
         opt.value = c.contract;
@@ -80,6 +81,7 @@
         contractSelect.appendChild(opt);
       });
     } catch (e) {
+      console.error("Ошибка загрузки договоров", e);
       contractSelect.innerHTML = "<option>Ошибка загрузки</option>";
     }
   }
